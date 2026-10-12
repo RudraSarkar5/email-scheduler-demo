@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-const buildDefaultRequest = () => ({
+const EMAIL_URL =
+  "https://service-email-pt.dev.cloud.motorola.net/send/demo_mail_for_email_scheduler";
+
+const PAYLOAD = {
   body: {
     variables: {
       username: "Rudra",
@@ -10,45 +13,41 @@ const buildDefaultRequest = () => ({
     },
     locale: "en",
   },
-  to: [process.env.DEFAULT_EMAIL_TO ?? "rusarkar@lenovo.com"],
-});
+  to: ["rusarkar@lenovo.com"],
+};
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
-    const body = await request.json();
-    const payload = body && typeof body === "object" ? body : buildDefaultRequest();
-
-    const emailApiUrl = process.env.EMAIL_API_URL ?? "https://service-email-pt.dev.cloud.motorola.net";
-    const response = await fetch(`${emailApiUrl}/send/demo_mail_for_email_scheduler`, {
+    const response = await fetch(EMAIL_URL, {
       method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(PAYLOAD),
     });
 
-    const responseText = await response.text();
-    let parsedBody: unknown = responseText;
+    const text = await response.text();
+    console.log("Email service status:", response.status, text);
 
+    let remoteResponse: unknown = text;
     try {
-      parsedBody = JSON.parse(responseText);
+      remoteResponse = JSON.parse(text);
     } catch {
-      // swallow parse errors and keep raw text
+      // keep raw text
     }
 
     return NextResponse.json(
-      {
-        success: response.ok,
-        status: response.status,
-        remoteResponse: parsedBody,
-      },
+      { success: response.ok, status: response.status, remoteResponse },
       { status: response.ok ? 200 : response.status }
     );
   } catch (error) {
+    console.error("send-email failed:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
+    const cause =
+      error instanceof Error && error.cause ? String(error.cause) : undefined;
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: message, cause },
       { status: 500 }
     );
   }
