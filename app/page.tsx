@@ -24,7 +24,8 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ scheduleAt }),
+        // FIX: convert the local time to UTC (ends with "Z") before sending
+        body: JSON.stringify({ scheduleAt: new Date(scheduleAt).toISOString() }),
       });
 
       const result = await response.json();
